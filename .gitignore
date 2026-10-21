@@ -2,3 +2,4 @@
 /pkg/
 /*.pkg.tar.*
 /.git-credentials
+/TEXT_RECOGNITION_IN_IMAGES.md
