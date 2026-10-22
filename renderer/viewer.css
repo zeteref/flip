@@ -38,7 +38,7 @@ html, body {
   box-shadow: 0 0 0 6px rgba(255, 149, 0, 0.35), 0 0 26px rgba(255, 149, 0, 0.85);
 }
 #grid .thumb.last img {
-  filter: brightness(1.18) saturate(1.15);
+  filter: grayscale(1);
 }
 #grid .thumb.last::after {
   content: "📍";
