@@ -57,6 +57,8 @@
     <tr><td><kbd>m</kbd></td><td>focus current image (fit to screen)</td></tr>
     <tr><td><kbd>f</kbd></td><td>toggle fullscreen</td></tr>
     <tr><td>click / <kbd>l</kbd></td><td>auto-scroll (reader) / slideshow (lightbox) on / off</td></tr>
+    <tr><td><kbd>b</kbd> / <kbd>B</kbd></td><td>save spot / return to last saved spot</td></tr>
+    <tr><td><kbd>Ctrl</kbd> + <kbd>b</kbd></td><td>show reading trail</td></tr>
     <tr><td><kbd>p</kbd> / <kbd>n</kbd></td><td>prev / next comic</td></tr>
     <tr><td><kbd>&larr;</kbd> / <kbd>&rarr;</kbd></td><td>prev / next comic · speed in auto-scroll</td></tr>
     <tr><td><kbd>h</kbd> / <kbd>?</kbd></td><td>show/hide this help</td></tr>
@@ -78,6 +80,7 @@
     <tr><td><kbd>S</kbd></td><td>sort direction: asc / desc</td></tr>
     <tr><td>double-click / <kbd>e</kbd></td><td>edit tags &amp; metadata</td></tr>
     <tr><td><kbd>Enter</kbd></td><td>read</td></tr>
+    <tr><td><kbd>B</kbd></td><td>return to last saved spot</td></tr>
     <tr><td><kbd>q</kbd></td><td>quit</td></tr>
   </table>
   <button type="button" id="helpClose">Close</button>
@@ -95,6 +98,14 @@
   <div class="metaBtns">
     <button type="button" id="metaCancel">Cancel</button>
     <button type="button" id="metaSave" class="primary">Save</button>
+  </div>
+</div>
+<div id="trail">
+  <h2>Reading trail</h2>
+  <p class="trailHint">B returns to the top entry · b saves the current spot</p>
+  <div id="trailList"></div>
+  <div class="trailBtns">
+    <button type="button" id="trailClose">Close</button>
   </div>
 </div>
 <div id="focus">

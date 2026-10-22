@@ -47,6 +47,9 @@ var metaAuthorListEl = document.getElementById("metaAuthorList");
 var metaTagListEl = document.getElementById("metaTagList");
 var metaSaveBtn = document.getElementById("metaSave");
 var metaCancelBtn = document.getElementById("metaCancel");
+var trailEl = document.getElementById("trail");
+var trailListEl = document.getElementById("trailList");
+var trailCloseBtn = document.getElementById("trailClose");
 
   var sel = -1, visible = [], mode = "browse";
   var cur = null;
@@ -72,6 +75,7 @@ var metaCancelBtn = document.getElementById("metaCancel");
   var current = 0;
   var focus = false;
   var lastRead = {};
+  var trail = [];
   var wheelAdvancePending = false;
   var gPending = false, gTimer = 0;
   var overscroll = 0;
@@ -88,6 +92,90 @@ var metaCancelBtn = document.getElementById("metaCancel");
 
   function saveLastRead() {
     if (window.flip && window.flip.saveState) window.flip.saveState(lastRead);
+  }
+
+  // ---- reading trail (bookmark stack) ----
+
+  function saveTrail() {
+    if (window.flip && window.flip.saveTrail) window.flip.saveTrail(trail);
+  }
+
+  function trailTitle(dir) {
+    for (var i = 0; i < COMICS.length; i++) {
+      if (COMICS[i].dir === dir) return COMICS[i].title;
+    }
+    return dir.split("/").pop();
+  }
+
+  function pushTrail() {
+    if (!cur || !cur.dir) return;
+    var top = trail[trail.length - 1];
+    if (top && top.dir === cur.dir && top.page === current) return;
+    trail.push({ dir: cur.dir, page: current });
+    saveTrail();
+    flashTitle("saved · trail " + trail.length);
+  }
+
+  function jumpToTrail(dir, page) {
+    var inComics = false;
+    for (var i = 0; i < COMICS.length; i++) {
+      if (COMICS[i].dir === dir) { inComics = true; break; }
+    }
+    if (!inComics) return;
+    var inVisible = false;
+    for (var j = 0; j < visible.length; j++) {
+      if (visible[j].dir === dir) { inVisible = true; break; }
+    }
+    if (!inVisible) {
+      searchEl.value = "";
+      starFilter = false;
+      sortComics();
+    }
+    applyFilter(dir);
+    if (!cur || cur.dir !== dir) return;
+    if (focus) exitFocus();
+    openReader(clamp(page, 0, cur.imgs.length - 1));
+  }
+
+  function popTrail() {
+    if (!trail.length) return;
+    var entry = trail.pop();
+    saveTrail();
+    jumpToTrail(entry.dir, entry.page);
+  }
+
+  function showTrail() {
+    trailListEl.innerHTML = "";
+    if (!trail.length) {
+      trailListEl.innerHTML = '<div class="trail-empty">(empty — press b while reading to save a spot)</div>';
+    } else {
+      for (var i = trail.length - 1; i >= 0; i--) {
+        var e = trail[i];
+        var row = document.createElement("div");
+        row.className = "trail-row";
+        var idx = document.createElement("span");
+        idx.className = "trail-idx";
+        idx.textContent = (i + 1) + ".";
+        var title = document.createElement("span");
+        title.className = "trail-title";
+        title.textContent = trailTitle(e.dir);
+        var pg = document.createElement("span");
+        pg.className = "trail-page";
+        pg.textContent = "p" + (e.page + 1);
+        row.appendChild(idx); row.appendChild(title); row.appendChild(pg);
+        trailListEl.appendChild(row);
+      }
+    }
+    trailEl.classList.add("show");
+  }
+
+  function closeTrail() {
+    trailEl.classList.remove("show");
+  }
+
+  function toggleTrail() {
+    if (trailEl.classList.contains("show")) closeTrail();
+    else showTrail();
   }
 
   function fileURL(dir, rel) {
@@ -856,6 +944,7 @@ var metaCancelBtn = document.getElementById("metaCancel");
   document.getElementById("helpClose").addEventListener("click", function () { showHelp(false); });
   metaSaveBtn.addEventListener("click", saveMeta);
   metaCancelBtn.addEventListener("click", closeMeta);
+  trailCloseBtn.addEventListener("click", closeTrail);
   jumpEl.addEventListener("blur", function () { jumpEl.classList.remove("show"); });
   metaTitleEl.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); e.stopPropagation(); saveMeta(); } });
   metaAuthorEl.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); e.stopPropagation(); saveMeta(); } });
@@ -961,6 +1050,15 @@ var metaCancelBtn = document.getElementById("metaCancel");
       else if (event.key === "Escape") { event.preventDefault(); hideJump(); }
       return;
     }
+    if (event.ctrlKey && event.key === "b") {
+      event.preventDefault();
+      toggleTrail();
+      return;
+    }
+    if (trailEl.classList.contains("show")) {
+      if (event.key === "Escape") { event.preventDefault(); closeTrail(); }
+      return;
+    }
     if (focus) {
       if (event.key === "Escape") {
         event.preventDefault();
@@ -987,6 +1085,10 @@ var metaCancelBtn = document.getElementById("metaCancel");
         event.preventDefault(); toggleSlideshow();
       } else if (event.key === ":") {
         event.preventDefault(); showJump();
+      } else if (event.key === "b") {
+        event.preventDefault(); pushTrail();
+      } else if (event.key === "B") {
+        event.preventDefault(); popTrail();
       } else if (event.key === "h" || event.key === "H" || event.key === "?") {
         event.preventDefault(); toggleHelp();
       } else if (event.key === "q" || event.key === "Q") {
@@ -1031,6 +1133,8 @@ var metaCancelBtn = document.getElementById("metaCancel");
       else if (event.key === "f" || event.key === "F") { event.preventDefault(); toggleFullscreen(); }
       else if (event.key === "l") { event.preventDefault(); toggleAutoscroll(); }
       else if (event.key === ":") { event.preventDefault(); showJump(); }
+      else if (event.key === "b") { event.preventDefault(); pushTrail(); }
+      else if (event.key === "B") { event.preventDefault(); popTrail(); }
       else if (event.key === "h" || event.key === "H" || event.key === "?") { event.preventDefault(); toggleHelp(); }
       else if (event.key === "q" || event.key === "Q") { event.preventDefault(); window.close(); }
       else if (event.key === "Backspace") { event.preventDefault(); backToBrowse(); }
@@ -1066,6 +1170,7 @@ var metaCancelBtn = document.getElementById("metaCancel");
     else if (event.key === "r") { event.preventDefault(); toggleStar(); }
     else if (event.key === "R") { event.preventDefault(); toggleStarFilter(); }
     else if (event.key === "Enter") { event.preventDefault(); openFocus(); }
+    else if (event.key === "B") { event.preventDefault(); popTrail(); }
     else if (event.key === "h" || event.key === "H" || event.key === "?") { event.preventDefault(); toggleHelp(); }
     else if (event.key === "q" || event.key === "Q") { event.preventDefault(); window.close(); }
     else if (event.key === "[") { event.preventDefault(); setTW(tw - STEP_T); updateDock(); }
@@ -1098,6 +1203,7 @@ var metaCancelBtn = document.getElementById("metaCancel");
       if (opts.error) { posEl.textContent = opts.error; return; }
       AUTO_READ = !!opts.autoRead;
       lastRead = opts.state || {};
+      trail = Array.isArray(opts.trail) ? opts.trail : [];
       if (typeof opts.titleFlash === "number") flashMs = opts.titleFlash;
       if (opts.slideshow) slideshow = true;
       if (opts.slideshow && COMICS.length === 1) {

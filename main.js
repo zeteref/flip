@@ -78,6 +78,19 @@ function readState() {
   }
 }
 
+function trailFile() {
+  return process.env.FLIP_TRAIL || path.join(os.homedir(), ".config", "flip", "trail.json");
+}
+
+function readTrail() {
+  try {
+    const data = JSON.parse(fs.readFileSync(trailFile(), "utf8"));
+    return Array.isArray(data) ? data : [];
+  } catch {
+    return [];
+  }
+}
+
 function parseWindowSize(s) {
   const m = String(s || "").match(/(\d+)\s*[x,]\s*(\d+)/);
   if (m) return { width: parseInt(m[1], 10), height: parseInt(m[2], 10) };
@@ -275,7 +288,7 @@ app.whenReady().then(() => {
         win.webContents.send("flip:comic", c);
       }
       if (win && !win.isDestroyed()) {
-        win.webContents.send("flip:done", { autoRead: args.read, state: readState(), titleFlash: titleFlash, slideshow: args.slideshow });
+        win.webContents.send("flip:done", { autoRead: args.read, state: readState(), trail: readTrail(), titleFlash: titleFlash, slideshow: args.slideshow });
       }
     } catch (e) {
       if (win && !win.isDestroyed()) {
@@ -288,6 +301,13 @@ app.whenReady().then(() => {
     try {
       fs.mkdirSync(path.dirname(stateFile()), { recursive: true });
       fs.writeFileSync(stateFile(), JSON.stringify(state));
+    } catch { /* ignore */ }
+  });
+
+  ipcMain.on("flip:saveTrail", (_e, trail) => {
+    try {
+      fs.mkdirSync(path.dirname(trailFile()), { recursive: true });
+      fs.writeFileSync(trailFile(), JSON.stringify(Array.isArray(trail) ? trail : []));
     } catch { /* ignore */ }
   });
 
