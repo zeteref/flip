@@ -7,6 +7,9 @@ url="https://github.com/zeteref/flip"
 license=('MIT')
 depends=('electron' 'attr')
 
+# write the built package to /tmp instead of cluttering the source dir
+PKGDEST=/tmp
+
 package() {
   install -d "$pkgdir/usr/lib/flip-electron"
   cp -r "$startdir/main.js" "$startdir/preload.js" "$startdir/renderer" "$startdir/package.json" \
