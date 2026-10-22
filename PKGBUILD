@@ -1,5 +1,5 @@
 pkgname=flip
-pkgver=0.3.1
+pkgver=0.3.2
 pkgrel=1
 pkgdesc="Comic and image viewer"
 arch=('any')
