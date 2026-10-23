@@ -5,7 +5,7 @@
   var AUTO_READ = false;
 
   var MIN_T = 4, MAX_T = 100, STEP_T = 4, RESET_T = 15;
-  var MIN_W = 15, MAX_W = 200, STEP_W = 5, RESET_W = 96, EDGE = 110;
+  var MIN_W = 15, MAX_W = 200, STEP_W = 5, RESET_W = 96, DOCK_PAD = 24;
 
   var searchEl = document.getElementById("search");
   var listEl = document.getElementById("list");
@@ -994,7 +994,9 @@ var trailCloseBtn = document.getElementById("trailClose");
   window.addEventListener("pointercancel", function () { sliding = false; showDock(); });
 
   document.addEventListener("mousemove", function (event) {
-    near = event.clientY >= window.innerHeight - EDGE;
+    var r = dock.getBoundingClientRect();
+    near = event.clientX >= r.left - DOCK_PAD && event.clientX <= r.right + DOCK_PAD
+        && event.clientY >= r.top - DOCK_PAD && event.clientY <= r.bottom + DOCK_PAD;
     showDock();
   }, { passive: true });
   document.addEventListener("mouseleave", function () { near = false; showDock(); });
