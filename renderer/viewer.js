@@ -183,6 +183,12 @@ var trailCloseBtn = document.getElementById("trailClose");
       + "/" + rel.split("/").map(encodeURIComponent).join("/");
   }
 
+  function relPath(i) {
+    if (!cur || !cur.imgs || !cur.imgs[i]) return "";
+    var d = cur.relDir || "";
+    return d ? d + "/" + cur.imgs[i] : cur.imgs[i];
+  }
+
   function activate(img) {
     if (!img || img.getAttribute("src")) return;
     var src = img.getAttribute("data-src");
@@ -612,9 +618,8 @@ var trailCloseBtn = document.getElementById("trailClose");
       index = i;
     }
     current = index;
-    var s = (index + 1) + "/" + total;
-    if (cur) s += " — " + cur.title;
-    posEl.textContent = s;
+    posEl.textContent = (index + 1) + "/" + total;
+    posEl.setAttribute("data-path", relPath(index));
   }
 
   function scheduleReaderPos() {
@@ -693,7 +698,8 @@ var trailCloseBtn = document.getElementById("trailClose");
     var name = decodeURIComponent(url.split("/").pop());
     focusImg.src = url;
     focusImg.alt = name;
-    focusCaption.textContent = (current + 1) + " / " + cur.imgs.length + " — " + name;
+    focusCaption.textContent = (current + 1) + "/" + cur.imgs.length;
+    focusCaption.setAttribute("data-path", relPath(current));
     if (slideshow && focus) {
       slideProgressEl.classList.add("show");
       resetProgress();

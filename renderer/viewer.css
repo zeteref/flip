@@ -65,6 +65,10 @@ html, body {
 }
 body.read #pos {
   left: 12px; transform: none;
+  pointer-events: auto;
+}
+body.read #pos:hover::after {
+  content: " — " attr(data-path);
 }
 #flash {
   position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%);
@@ -243,5 +247,9 @@ body.focus { overflow: hidden; }
   background: rgba(0,0,0,.6);
   font: 13px/1 system-ui, sans-serif; color: #eee;
   font-variant-numeric: tabular-nums;
-  pointer-events: none; user-select: none;
+  pointer-events: auto; user-select: none;
+  max-width: 70vw; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+#focusCaption:hover::after {
+  content: " — " attr(data-path);
 }

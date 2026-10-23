@@ -200,7 +200,7 @@ async function listSubdirs(dir) {
     .map((e) => path.join(dir, e.name));
 }
 
-async function discoverComic(dir, id) {
+async function discoverComic(dir, id, base) {
   const attrs = await getAllXattrs(dir);
   const title = attrs["user.zine.title"] || path.basename(dir);
   const author = attrs["user.zine.author"] || "";
@@ -208,9 +208,10 @@ async function discoverComic(dir, id) {
   const url = attrs["user.zine.url"] || "";
   const starred = !!attrs["user.zine.starred"];
   const imgs = sortNatural(await findImages(dir)).map((img) => path.relative(dir, img));
+  const relDir = path.relative(base, dir);
   let date = 0;
   try { date = (await fsp.stat(dir)).mtimeMs; } catch { /* ignore */ }
-  return { id, dir, title, author, tags, url, date, starred, imgs };
+  return { id, dir, relDir, title, author, tags, url, date, starred, imgs };
 }
 
 async function mapLimit(items, limit, fn) {
@@ -264,6 +265,7 @@ app.whenReady().then(() => {
     return;
   }
   args.root = path.resolve(args.root);
+  const displayBase = cfg.root ? path.resolve(expandTilde(cfg.root)) : args.root;
 
   win = new BrowserWindow({
     width: winSize.width,
@@ -282,7 +284,7 @@ app.whenReady().then(() => {
   ipcMain.on("flip:ready", async () => {
     try {
       const dirs = args.single ? [args.root] : sortNatural(await listSubdirs(args.root));
-      const comics = await mapLimit(dirs, 8, (d, id) => discoverComic(d, id));
+      const comics = await mapLimit(dirs, 8, (d, id) => discoverComic(d, id, displayBase));
       for (const c of comics) {
         if (!win || win.isDestroyed()) return;
         win.webContents.send("flip:comic", c);
