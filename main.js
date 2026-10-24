@@ -8,6 +8,10 @@ const os = require("os");
 const { execFile } = require("child_process");
 const { promisify } = require("util");
 
+// Force ANGLE to use OpenGL instead of Vulkan: Chromium's Wayland (ozone)
+// backend is not compatible with Vulkan and logs an error on startup.
+app.commandLine.appendSwitch("use-angle", "gl");
+
 const execFileAsync = promisify(execFile);
 
 const wordCache = new Map();
@@ -26,6 +30,7 @@ function parseArgs(argv, defaultRoot) {
   let single = false;
   let read = false;
   let slideshow = false;
+  let resume = false;
   // Only parse args after the "--" separator: everything before it (electron
   // binary, injected Chromium flags, app path) is not ours.
   const sep = argv.indexOf("--");
@@ -34,12 +39,13 @@ function parseArgs(argv, defaultRoot) {
     if (a === "-s" || a === "--single") single = true;
     else if (a === "-r" || a === "--read") { single = true; read = true; }
     else if (a === "--slideshow") { single = true; slideshow = true; }
+    else if (a === "--resume") resume = true;
     else if (a === "--version" || a === "-V") return { version: true };
     else if (a === "-h" || a === "--help") return { help: true };
     else if (a.startsWith("-")) continue; // ignore unknown flags
     else root = a;
   }
-  return { root, single, read, slideshow };
+  return { root, single, read, slideshow, resume };
 }
 
 function expandTilde(p) {
@@ -70,12 +76,24 @@ function stateFile() {
 }
 
 function readState() {
+  let data;
   try {
-    const data = JSON.parse(fs.readFileSync(stateFile(), "utf8"));
-    return data && typeof data === "object" && !Array.isArray(data) ? data : {};
+    data = JSON.parse(fs.readFileSync(stateFile(), "utf8"));
   } catch {
-    return {};
+    return { lastRead: {}, lastOpen: {} };
   }
+  if (!data || typeof data !== "object" || Array.isArray(data)) {
+    return { lastRead: {}, lastOpen: {} };
+  }
+  // New format: { lastRead: {dir: page}, lastOpen: {root: dir} }.
+  // Migrate the old flat { dir: page } map on first read.
+  if (data.lastRead && typeof data.lastRead === "object" && !Array.isArray(data.lastRead)) {
+    return {
+      lastRead: data.lastRead,
+      lastOpen: (data.lastOpen && typeof data.lastOpen === "object" && !Array.isArray(data.lastOpen)) ? data.lastOpen : {},
+    };
+  }
+  return { lastRead: data, lastOpen: {} };
 }
 
 function trailFile() {
@@ -290,7 +308,7 @@ app.whenReady().then(() => {
         win.webContents.send("flip:comic", c);
       }
       if (win && !win.isDestroyed()) {
-        win.webContents.send("flip:done", { autoRead: args.read, state: readState(), trail: readTrail(), titleFlash: titleFlash, slideshow: args.slideshow });
+        win.webContents.send("flip:done", { autoRead: args.read, resume: args.resume, root: args.root, state: readState(), trail: readTrail(), titleFlash: titleFlash, slideshow: args.slideshow });
       }
     } catch (e) {
       if (win && !win.isDestroyed()) {

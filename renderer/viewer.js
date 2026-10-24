@@ -75,6 +75,8 @@ var trailCloseBtn = document.getElementById("trailClose");
   var current = 0;
   var focus = false;
   var lastRead = {};
+  var lastOpen = {};
+  var root = "";
   var trail = [];
   var wheelAdvancePending = false;
   var gPending = false, gTimer = 0;
@@ -90,8 +92,12 @@ var trailCloseBtn = document.getElementById("trailClose");
 
   function clamp(n, lo, hi) { return Math.min(hi, Math.max(lo, n)); }
 
-  function saveLastRead() {
-    if (window.flip && window.flip.saveState) window.flip.saveState(lastRead);
+  function saveState() {
+    if (window.flip && window.flip.saveState) window.flip.saveState({ lastRead: lastRead, lastOpen: lastOpen });
+  }
+
+  function markOpen() {
+    if (root && cur && cur.dir) lastOpen[root] = cur.dir;
   }
 
   // ---- reading trail (bookmark stack) ----
@@ -339,7 +345,7 @@ var trailCloseBtn = document.getElementById("trailClose");
   function clearLastRead() {
     if (!cur || !cur.dir) return;
     delete lastRead[cur.dir];
-    saveLastRead();
+    saveState();
     highlightLastRead();
     scrollGridTop();
   }
@@ -496,6 +502,7 @@ var trailCloseBtn = document.getElementById("trailClose");
   function openReader(startIndex) {
     var c = cur;
     if (!c || !c.imgs.length) return;
+    markOpen();
     if (typeof startIndex !== "number") {
       var remembered = lastRead[c.dir];
       startIndex = (typeof remembered === "number" && remembered >= 0 && remembered < c.imgs.length) ? remembered : 0;
@@ -512,6 +519,7 @@ var trailCloseBtn = document.getElementById("trailClose");
   function openFocus(startIndex) {
     var c = cur;
     if (!c || !c.imgs.length) return;
+    markOpen();
     if (typeof startIndex !== "number") {
       var remembered = lastRead[c.dir];
       startIndex = (typeof remembered === "number" && remembered >= 0 && remembered < c.imgs.length) ? remembered : 0;
@@ -519,6 +527,20 @@ var trailCloseBtn = document.getElementById("trailClose");
     current = startIndex;
     enterFocus();
     enterFullscreen();
+  }
+
+  function resumeReading() {
+    var target = lastOpen[root];
+    if (target) {
+      for (var i = 0; i < COMICS.length; i++) {
+        if (COMICS[i].dir === target) {
+          applyFilter(target);
+          openReader();
+          return;
+        }
+      }
+    }
+    applyFilter();
   }
 
   function renderReader(startIndex) {
@@ -563,9 +585,11 @@ var trailCloseBtn = document.getElementById("trailClose");
     if (mode !== "read" && !focus) return false;
     var target = sel + delta;
     if (target < 0 || target >= visible.length) return false;
-    if (cur && cur.dir) { lastRead[cur.dir] = current; saveLastRead(); }
+    if (cur && cur.dir) lastRead[cur.dir] = current;
     sel = target;
     cur = visible[sel];
+    markOpen();
+    saveState();
     var rows = listEl.children;
     for (var k = 0; k < rows.length; k++) rows[k].classList.toggle("sel", k === sel);
     if (rows[sel]) rows[sel].scrollIntoView({ block: "nearest" });
@@ -577,7 +601,8 @@ var trailCloseBtn = document.getElementById("trailClose");
 
   function backToBrowse() {
     lastRead[cur.dir] = current;
-    saveLastRead();
+    markOpen();
+    saveState();
     mode = "browse";
     document.body.classList.remove("read");
     readerEl.style.display = "none";
@@ -1194,7 +1219,7 @@ var trailCloseBtn = document.getElementById("trailClose");
   });
   window.addEventListener("blur", function () { heldJ = false; heldK = false; heldN = false; heldU = false; });
   window.addEventListener("beforeunload", function () {
-    if (cur && cur.dir) { lastRead[cur.dir] = current; saveLastRead(); }
+    if (cur && cur.dir) { lastRead[cur.dir] = current; markOpen(); saveState(); }
   });
 
   setTW(RESET_T);
@@ -1210,7 +1235,9 @@ var trailCloseBtn = document.getElementById("trailClose");
     window.flip.onDone(function (opts) {
       if (opts.error) { posEl.textContent = opts.error; return; }
       AUTO_READ = !!opts.autoRead;
-      lastRead = opts.state || {};
+      root = opts.root || "";
+      lastRead = (opts.state && opts.state.lastRead) || {};
+      lastOpen = (opts.state && opts.state.lastOpen) || {};
       trail = Array.isArray(opts.trail) ? opts.trail : [];
       if (typeof opts.titleFlash === "number") flashMs = opts.titleFlash;
       if (opts.slideshow) slideshow = true;
@@ -1226,6 +1253,8 @@ var trailCloseBtn = document.getElementById("trailClose");
         renderList();
         showComic();
         openReader(0);
+      } else if (opts.resume) {
+        resumeReading();
       } else {
         applyFilter();
       }
