@@ -457,11 +457,12 @@ var trailCloseBtn = document.getElementById("trailClose");
   function metaTagSuggestion(raw) {
     var norm = normalizeTag(raw);
     if (!norm) return null;
-    var matches = metaAllTags.filter(function (t) { return t.indexOf(norm) === 0 && t !== norm; });
+    if (metaAllTags.indexOf(norm) !== -1) return null;
+    var matches = metaAllTags.filter(function (t) { return t.indexOf(norm) === 0; });
     return matches.length === 1 ? matches[0] : null;
   }
 
-  function openMeta(c) {
+  function openMeta(c, focusTags) {
     metaComic = c;
     metaTitleEl.value = c.title || "";
     metaAuthorEl.value = c.author || "";
@@ -470,7 +471,8 @@ var trailCloseBtn = document.getElementById("trailClose");
     renderMetaChips();
     fillMetaSuggestions();
     metaEl.classList.add("show");
-    metaTitleEl.focus();
+    if (focusTags) metaTagInputEl.focus();
+    else metaTitleEl.focus();
   }
 
   function closeMeta() {
@@ -981,12 +983,25 @@ var trailCloseBtn = document.getElementById("trailClose");
   metaAuthorEl.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); e.stopPropagation(); saveMeta(); } });
   metaUrlEl.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); e.stopPropagation(); saveMeta(); } });
   metaTagInputEl.addEventListener("keydown", function (e) {
-    if (e.key === "Enter" || e.key === ",") {
+    if (e.key === "Enter") {
       e.preventDefault();
       e.stopPropagation();
+      if (metaTagInputEl.value.trim() === "") {
+        saveMeta();
+        return;
+      }
       var sug = metaTagSuggestion(metaTagInputEl.value);
       addMetaTag(sug || metaTagInputEl.value);
       metaTagInputEl.value = "";
+    } else if (e.key === ",") {
+      e.preventDefault();
+      e.stopPropagation();
+      var v = metaTagInputEl.value;
+      if (v.trim() !== "") {
+        var sug = metaTagSuggestion(v);
+        addMetaTag(sug || v);
+        metaTagInputEl.value = "";
+      }
     } else if (e.key === "Backspace" && metaTagInputEl.value === "") {
       if (metaTags.length) { metaTags.pop(); renderMetaChips(); }
     }
@@ -1096,11 +1111,7 @@ var trailCloseBtn = document.getElementById("trailClose");
       if (event.key === "Escape") {
         event.preventDefault();
         if (helpEl.classList.contains("show")) showHelp(false);
-        else {
-          var wasBrowse = (mode === "browse");
-          exitFocus();
-          if (wasBrowse) exitFullscreen();
-        }
+        else window.close();
       } else if (event.key === "m" || event.key === "M") {
         event.preventDefault();
         var page = current;
@@ -1125,7 +1136,7 @@ var trailCloseBtn = document.getElementById("trailClose");
       } else if (event.key === "h" || event.key === "H" || event.key === "?") {
         event.preventDefault(); toggleHelp();
       } else if (event.key === "q" || event.key === "Q") {
-        event.preventDefault(); window.close();
+        event.preventDefault(); exitFocus(); backToBrowse();
       }
       return;
     }
@@ -1169,15 +1180,12 @@ var trailCloseBtn = document.getElementById("trailClose");
       else if (event.key === "b") { event.preventDefault(); pushTrail(); }
       else if (event.key === "B") { event.preventDefault(); popTrail(); }
       else if (event.key === "h" || event.key === "H" || event.key === "?") { event.preventDefault(); toggleHelp(); }
-      else if (event.key === "q" || event.key === "Q") { event.preventDefault(); window.close(); }
+      else if (event.key === "q" || event.key === "Q") { event.preventDefault(); backToBrowse(); }
       else if (event.key === "Backspace") { event.preventDefault(); backToBrowse(); }
       else if (event.key === "Escape") {
-        if (helpEl.classList.contains("show")) { event.preventDefault(); showHelp(false); }
-        else if (fullscreenActive()) {
-          event.preventDefault();
-          if (document.exitFullscreen) document.exitFullscreen();
-          else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
-        }
+        event.preventDefault();
+        if (helpEl.classList.contains("show")) showHelp(false);
+        else window.close();
       }
       return;
     }
@@ -1199,13 +1207,18 @@ var trailCloseBtn = document.getElementById("trailClose");
     else if (event.key === "s") { event.preventDefault(); cycleSort(); }
     else if (event.key === "S") { event.preventDefault(); toggleSortDir(); }
     else if (event.key === "e") { event.preventDefault(); if (cur) openMeta(cur); }
+    else if (event.key === "t") { event.preventDefault(); if (cur) openMeta(cur, true); }
     else if (event.key === "x") { event.preventDefault(); clearLastRead(); }
     else if (event.key === "r") { event.preventDefault(); toggleStar(); }
     else if (event.key === "R") { event.preventDefault(); toggleStarFilter(); }
     else if (event.key === "Enter") { event.preventDefault(); openFocus(); }
     else if (event.key === "B") { event.preventDefault(); popTrail(); }
     else if (event.key === "h" || event.key === "H" || event.key === "?") { event.preventDefault(); toggleHelp(); }
-    else if (event.key === "q" || event.key === "Q") { event.preventDefault(); window.close(); }
+    else if (event.key === "Escape") {
+      event.preventDefault();
+      if (helpEl.classList.contains("show")) showHelp(false);
+      else window.close();
+    }
     else if (event.key === "[") { event.preventDefault(); setTW(tw - STEP_T); updateDock(); }
     else if (event.key === "]") { event.preventDefault(); setTW(tw + STEP_T); updateDock(); }
     else if (event.key === "0") { event.preventDefault(); setTW(RESET_T); updateDock(); }
