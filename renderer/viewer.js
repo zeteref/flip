@@ -273,6 +273,7 @@ var trailCloseBtn = document.getElementById("trailClose");
   function applyFilter(preserveDir) {
     var q = searchEl.value.trim().toLowerCase().split(/\s+/).filter(Boolean);
     visible = COMICS.filter(function (c) {
+      if (!c.imgs.length) return false;
       if (starFilter && !c.starred) return false;
       var hay = (c.title + " " + c.author + " " + c.tags.join(" ")).toLowerCase();
       return q.every(function (t) { return hay.indexOf(t) !== -1; });
@@ -1214,6 +1215,7 @@ var trailCloseBtn = document.getElementById("trailClose");
     else if (event.key === "Enter") { event.preventDefault(); openFocus(); }
     else if (event.key === "B") { event.preventDefault(); popTrail(); }
     else if (event.key === "h" || event.key === "H" || event.key === "?") { event.preventDefault(); toggleHelp(); }
+    else if (event.key === "q" || event.key === "Q") { event.preventDefault(); window.close(); }
     else if (event.key === "Escape") {
       event.preventDefault();
       if (helpEl.classList.contains("show")) showHelp(false);
