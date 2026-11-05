@@ -302,7 +302,8 @@ var trailCloseBtn = document.getElementById("trailClose");
         t.appendChild(star);
       }
       t.appendChild(document.createTextNode(c.title));
-      var a = document.createElement("div"); a.className = "a"; a.textContent = c.author;
+      var a = document.createElement("div"); a.className = "a";
+      a.textContent = (c.author ? c.author + " · " : "") + c.imgs.length + " pages";
       row.appendChild(t); row.appendChild(a);
       row.addEventListener("click", function () { select(i); });
       row.addEventListener("dblclick", function () { openMeta(c); });
