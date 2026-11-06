@@ -612,9 +612,12 @@ var trailCloseBtn = document.getElementById("trailClose");
     readerEl.style.display = "none";
     browseEl.style.display = "flex";
     updateDock();
-    highlightLastRead();
     browsePos();
-    exitFullscreen();
+    exitFullscreen().then(function () {
+      requestAnimationFrame(function () {
+        highlightLastRead();
+      });
+    });
   }
 
   function highlightLastRead() {
@@ -710,9 +713,10 @@ var trailCloseBtn = document.getElementById("trailClose");
   }
 
   function exitFullscreen() {
-    if (!fullscreenActive()) return;
-    if (document.exitFullscreen) document.exitFullscreen();
-    else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+    if (!fullscreenActive()) return Promise.resolve();
+    if (document.exitFullscreen) return document.exitFullscreen();
+    if (document.webkitExitFullscreen) return document.webkitExitFullscreen();
+    return Promise.resolve();
   }
 
   function updateFs() {
